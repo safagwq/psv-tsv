@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'/>
+    <meta name='viewport' content='width=device-width,initial-scale=1.0'/>
+    <title>psv破解游戏web商店</title>
+    <style>
+        *{box-sizing:border-box;  }
+        html{height:100%;  }
+        body{height:100%;  margin:0;  font-size:14px;  }
+        #app{height:100%;  max-width:800px;  margin:auto;  display:flex;  flex-direction:column;  }
+        form{display:flex;  align-content:;  height:50px;  padding:5px;  flex-shrink:0;  }
+        #table-view{flex-grow:1;  flex-shrink:1;  overflow:auto;  -webkit-overflow-scrolling:touch;  }
+        table{border-style:solid;  border-color:#ccc;  width:100%;  }
+        td{font-size:12px;  position:relative;  padding:3px;  text-align:center;  }
+        td>a{position:absolute;  top:0;  left:0;  right:0;  bottom:0;  padding:5px;  text-overflow:ellipsis;  overflow:hidden;  white-space:nowrap;    }
+        input{height:100%;  padding:0 5px;  border:1px solid #ccc;  border-radius:3px;  flex-grow:1;  }
+        button{width:60px;  height:100%;  margin-left:5px;  border-radius:3px;  }
+        .tr-fixed{position:fixed;  top:50px;  left:0;  right:0;  width:100%;  max-width:800px;  margin:auto;  background:#fff;  z-index:1;  }
+        .tr-fixed>th{background:#fff;  }
+        .name{width:30%;  }
+
+        @media (min-width:400px){
+            .name{width:40%;  }
+        }
+        @media (min-width:500px){
+            .name{width:50%;  }
+        }
+    </style>
+</head>
+<body>
+    <div id='app'>
+        <form @submit.prevent='search'>
+            <input v-model='form.searchValue' @input='search' placeholder="搜索游戏"/>
+            <input type='submit' hidden/>
+        </form>
+
+        <div id='table-view'>
+            <table border='1' cellpadding='0' cellspacing='0'>
+                <thead>
+                    <tr>
+                        <!-- <th>游戏ID</th> -->
+                        <th>地区</th>
+                        <th class='name'>游戏名</th>
+                        <th>更新时间</th>
+                        <th>游戏大小</th>
+                        <th>系统版本</th>
+                    </tr>
+                    <tr class='tr-fixed'>
+                        <!-- <th>游戏ID</th> -->
+                        <th>地区</th>
+                        <th>游戏名</th>
+                        <th>更新时间</th>
+                        <th>游戏大小</th>
+                        <th>系统版本</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for='item in list'>
+                        <!-- <td>{{item.id}}</td> -->
+                        <td>{{item.area}}</td>
+                        <td><a :title='item.name' :href='item.href'>{{item.name}}</a></td>
+                        <td>{{item.time}}</td>
+                        <td>{{item.size}}</td>
+                        <td>{{item.version}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/axios@0.18.0/dist/axios.min.js'></script>
+    <script>
+
+        var dict={
+            US : '美国',
+            JP : '日本',
+            EU : '欧洲',
+            ASIA : '亚洲'
+        }
+
+        new Vue({
+            el : '#app',
+            data : {
+                list : [],
+                form : {
+                    searchValue : ''
+                },
+            },
+            methods:{
+                init(){
+                    axios.get('./PSV_GAMES_TC.tsv')
+                    .then((data)=>{
+                        var list=data.data.split('\n')
+                        list.shift()
+                        console.log(list[0])
+                        list = list.map((itemString)=>itemString.split('\t').concat([itemString])).map(itemArr=>{
+                            return {
+                                id : itemArr[0],
+                                area : this.formatAreaName(itemArr[1]),
+                                name : itemArr[2],
+                                href : itemArr[3],
+                                time : this.formatTime(itemArr[6],'yyyy-MM-dd'),
+                                version : itemArr[10],
+                                size : this.formatFileSize(itemArr[8]),
+                                timestamp : new Date(itemArr[6]).getTime(),
+                                rawData : itemArr[12],
+                            }
+                        })
+                        this.list = list
+
+
+                    })
+                },
+                formatAreaName(area){
+                    return dict[area] || '其他'
+                },
+                formatFileSize(size){
+                    size=parseInt(size)
+
+                    if(size>1024*1024*1024){
+                        return parseFloat(  ( size/1024/1024/1024 ).toFixed(2)  )+'G'
+                    }
+                    return parseInt(size/1024/1024)+'M'
+                },
+                formatTime(time,str){
+                    var date = new Date(time)
+
+                    var o = {   
+                        "M+" : date.getMonth()+1,
+                        "d+" : date.getDate(),
+                        "h+" : date.getHours(),
+                        "m+" : date.getMinutes(),
+                        "s+" : date.getSeconds(),
+                        "q+" : Math.floor((date.getMonth()+3)/3),
+                        "S"  : date.getMilliseconds()
+                    }
+
+                    if(/(y+)/.test(str)){
+                        str=str.replace(RegExp.$1, (date.getFullYear()+"").substr(4 - RegExp.$1.length));   
+                    }
+
+                    for(var k in o){
+                        if(new RegExp("("+ k +")").test(str)){
+                            str = str.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));   
+                        }
+                    }
+
+                    return str
+                },
+                search(){
+
+                }
+            },
+            mounted(){
+                this.init()
+            },
+        })
+
+    </script>
+    
+
+</body>
+</html>
